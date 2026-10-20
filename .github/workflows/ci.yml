@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+#
+# CPU-only CI. It builds the dev and lint images from docker/dev.Dockerfile and
+# then runs tools/run_ci_local.sh, so GitHub runs exactly the steps a developer
+# runs locally with one command; there is no second definition of the checks to
+# drift. No GPU is used: the jobs compile the kernels for sm_80/86/89 and check
+# the build output, run the CPU test suite and lint. Tests under tests/gpu and
+# the benchmarks under bench/ need a GPU and are not run here.
+#
+# The dev image is about 18.5 GB (CUDA 13.0 development base, torch, vLLM), so
+# the first step removes preinstalled toolchains from the runner to make room.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cpu:
+    runs-on: ubuntu-24.04
+    # The full run takes about 31 minutes with 6 CPUs and the containers are
+    # limited to min(4, nproc) CPUs (tools/ci_cpus.sh). A runner of a private
+    # repository has 2 CPUs and needs 1.5 to 2 hours; public repositories get 4
+    # CPUs and finish sooner. The timeout leaves room for the 2-CPU case.
+    timeout-minutes: 180
+    steps:
+      - name: Check out (full history for the sign-off check)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android \
+            "${RUNNER_TOOL_CACHE}"
+          df -h /
+
+      - name: Build pth-flash-attn-dev (dev stage)
+        run: >
+          docker build -f docker/dev.Dockerfile --target dev
+          -t pth-flash-attn-dev .
+
+      - name: Build pth-flash-attn-lint (lint stage on top of the dev image)
+        run: >
+          docker build -f docker/dev.Dockerfile --target lint
+          --build-arg LINT_BASE=pth-flash-attn-dev -t pth-flash-attn-lint .
+
+      - name: All CPU checks (tools/run_ci_local.sh)
+        run: tools/run_ci_local.sh
+
+      # if: always() uploads the reports of a failed run too.
+      - name: Keep the compile-cost and ptxas reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-reports
+          path: build/ci/
+          if-no-files-found: warn

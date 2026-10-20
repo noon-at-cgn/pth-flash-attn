@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+name: Feature request
+description: Propose a capability, for example a new head size, GPU architecture or option.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Maintenance is best-effort and the supported configurations are
+        deliberately narrow; see
+        [CONTRIBUTING.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/CONTRIBUTING.md).
+        Check the support table in the README first: a feature listed there as
+        refused is refused on purpose.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What cannot be done today, and for which model, GPU and engine.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: The behaviour wanted, and any approach in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: For example using `TRITON_ATTN` for that configuration.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Measurements or references that show the need or the benefit, with the hardware, power limit and software versions.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to implement and test this, including on a GPU, following CONTRIBUTING.md.

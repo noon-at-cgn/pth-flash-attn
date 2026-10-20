@@ -1,0 +1,115 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+name: Bug report
+description: Wrong output, a crash, a wrong refusal or a build failure.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project is maintained on a best-effort basis; see
+        [CONTRIBUTING.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/CONTRIBUTING.md).
+        Please check [docs/troubleshooting.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/docs/troubleshooting.md)
+        for the refusal and build messages first.
+
+        Report a security problem privately instead, as described in
+        [SECURITY.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/SECURITY.md).
+
+        **Do not paste tokens, API keys, credentials, private prompts or model
+        weights.** Remove them from logs and commands before posting.
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU model and compute capability
+      description: Model, memory size, and compute capability (for example `RTX 3080 20 GB, 8.6`). Report each GPU if the machine has several.
+    validations:
+      required: true
+  - type: input
+    id: driver
+    attributes:
+      label: NVIDIA driver version
+      placeholder: "output of: nvidia-smi --query-gpu=driver_version --format=csv,noheader"
+    validations:
+      required: true
+  - type: input
+    id: cuda
+    attributes:
+      label: CUDA toolkit and nvcc version
+      description: The nvcc that built the extension, and the CUDA version of the PyTorch build.
+      placeholder: "nvcc 13.0.88; torch built for CUDA 13.0"
+    validations:
+      required: true
+  - type: input
+    id: torch
+    attributes:
+      label: PyTorch version
+      placeholder: "2.13.0+cu130"
+    validations:
+      required: true
+  - type: input
+    id: vllm
+    attributes:
+      label: vLLM version
+      description: The vLLM version, or `not used` if the op is called directly.
+      placeholder: "0.31.0, or not used"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: pth-flash-attn version or commit
+      placeholder: "0.1.0, or a commit hash"
+    validations:
+      required: true
+  - type: dropdown
+    id: usage
+    attributes:
+      label: How is the kernel used?
+      description: Whether the `PTH_FA` setting of HyperQwen or the vLLM plugin is involved.
+      options:
+        - vLLM plugin (`--attention-backend CUSTOM`)
+        - HyperQwen with `PTH_FA` enabled
+        - Direct call of the op from Python
+        - Another engine or a vLLM-derived fork
+        - Build or install only
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command or code
+      description: The full command line or script that triggers the problem, including the engine arguments if one is used.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: What happened instead. Include the complete error message and traceback, or the numerical difference and how it was measured.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      description: The smallest script or the shapes, dtypes and strides of every tensor argument that reproduce the problem. A reproducer that calls the op directly with random tensors is the most useful.
+      render: python
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment capture
+      description: Output of `tools/collect_env.sh` (read-only queries; review it before posting).
+      render: text
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Other GPUs or versions on which it does or does not happen, and whether it happens with `TRITON_ATTN`.

@@ -1,0 +1,85 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+name: Performance report
+description: An end-to-end speed, latency or memory measurement with the op or the vLLM plugin, with enough detail to repeat it.
+title: "[Performance]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to report a measured speed-up, slow-down or memory difference. A report is comparable only if it
+        follows the protocol in
+        [CONTRIBUTING.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/CONTRIBUTING.md#performance-reports)
+        and the statistics of
+        [docs/benchmark-methodology.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/docs/benchmark-methodology.md).
+        A kernel time in microseconds is not a tokens-per-second figure; report end-to-end rates measured end to end.
+
+        Maintenance is best-effort; see
+        [CONTRIBUTING.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/CONTRIBUTING.md).
+        **Do not paste tokens, credentials, private prompts, private paths or host identifiers.**
+  - type: input
+    id: build
+    attributes:
+      label: pth-flash-attn build
+      description: The release version, the commit, or the image digest the arm ran from.
+      placeholder: "0.1.0; or commit abc1234; or image sha256:..."
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Engine, PyTorch, CUDA and driver versions
+      placeholder: "vLLM 0.31.0; torch 2.13.0+cu130; CUDA 13.0; driver 580.x"
+    validations:
+      required: true
+  - type: textarea
+    id: machine
+    attributes:
+      label: Machine
+      description: GPU model, count and compute capability (and any memory modification), power limit per card, clock locks, interconnect (PCIe generation, peer-to-peer on or off, NVLink), tensor-parallel size, background load on the host and the GPUs, and the sampling interval of any power or clock log.
+      placeholder: |
+        2 x RTX 3080 20 GB, 8.6; 220 W per card; no clock lock; PCIe Gen3 x16, no P2P; TP=2;
+        nothing else running; nvidia-smi sampled every 1 s
+    validations:
+      required: true
+  - type: textarea
+    id: arms
+    attributes:
+      label: Comparison arms
+      description: Every arm with its attention backend, KV-cache dtype and the exact launch command, and what differs between the arms apart from the kernel (CUDA-graph mode, speculative decoding, memory utilisation).
+    validations:
+      required: true
+  - type: textarea
+    id: workload
+    attributes:
+      label: Weights, prompts and sampler
+      description: The checkpoint and its revision, the exact prompt text (or the script and seed that generates it), the prompt and output lengths, and the sampling parameters. The weights, prompts and sampler have to be the same in every arm.
+    validations:
+      required: true
+  - type: textarea
+    id: repetitions
+    attributes:
+      label: Repetitions
+      description: Warm-up requests and measured runs per arm, and the number of boots per arm. State which runs are discarded.
+      placeholder: "2 warm-up requests, then 5 measured runs per context length, one boot per arm"
+    validations:
+      required: true
+  - type: textarea
+    id: results
+    attributes:
+      label: Results
+      description: Per arm and per cell, the decode rate and the wall rate as separate figures, the time to first token (cold and warm), the spread (median and range, or a confidence interval), and the peak VRAM per card. Add the KV-cache size in tokens that the engine reports.
+    validations:
+      required: true
+  - type: textarea
+    id: caveats
+    attributes:
+      label: Caveats
+      description: Anything that limits the comparison, for example a different memory utilisation between arms, a thermal or power limit that was reached, or an arm that ran from a different build.
+  - type: checkboxes
+    id: hygiene
+    attributes:
+      label: Logs
+      options:
+        - label: Credentials, private paths and host identifiers are removed from everything I pasted.
+          required: true

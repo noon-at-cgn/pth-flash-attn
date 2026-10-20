@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.cu linguist-language=Cuda
+*.cuh linguist-language=Cuda
+docs/** linguist-documentation

@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pth-flash-attn/tests/gpu/grid_report.schema.json",
+  "title": "Grid report (tests/gpu/grid_report.py)",
+  "description": "One per grid results directory (tests/gpu/run_grid.sh). verdict is 'pass' only if every step exited as expected, every pytest step ran at least one test, every grid case was recorded and passed, and no other record failed. reasons lists every cause of a 'fail'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record",
+    "session",
+    "verdict",
+    "reasons",
+    "steps",
+    "grid",
+    "other_tests"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "record": {
+      "const": "grid_report"
+    },
+    "session": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdict": {
+      "enum": [
+        "pass",
+        "fail"
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "exit_code",
+          "expected_exit",
+          "seconds",
+          "tests",
+          "ok"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "exit_code": {
+            "type": "integer"
+          },
+          "expected_exit": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tests": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "failures": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "sanitizer_errors": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cases_expected",
+        "cases_recorded",
+        "cases_passed",
+        "failed",
+        "missing",
+        "tightness",
+        "by_family"
+      ],
+      "properties": {
+        "cases_expected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cases_recorded": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cases_passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "case",
+              "violations",
+              "tightness",
+              "canary_out_ok"
+            ],
+            "properties": {
+              "case": {
+                "type": "string"
+              },
+              "violations": {
+                "type": "integer"
+              },
+              "nonfinite": {
+                "type": "integer"
+              },
+              "tightness": {
+                "type": [
+                  "number",
+                  "string"
+                ]
+              },
+              "canary_out_ok": {
+                "type": "boolean"
+              },
+              "canary_ws_ok": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "worst": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tightness": {
+          "$ref": "#/$defs/spread"
+        },
+        "by_family": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cases",
+              "passed",
+              "tightness"
+            ],
+            "properties": {
+              "cases": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "passed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "tightness": {
+                "$ref": "#/$defs/spread"
+              }
+            }
+          }
+        },
+        "worst_case": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "other_tests": {
+      "type": "object",
+      "description": "Records of the loader, graph and production tests, by test name.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recorded",
+          "failed"
+        ],
+        "properties": {
+          "recorded": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "device": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  },
+  "$defs": {
+    "spread": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "median",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "median": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

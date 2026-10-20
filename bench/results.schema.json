@@ -1,0 +1,985 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://github.com/noon-at-cgn/pth-flash-attn/blob/main/bench/results.schema.json",
+ "title": "pth-flash-attn benchmark result (one arm at one shape in one run)",
+ "description": "SPDX-License-Identifier: Apache-2.0. SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn. Written by bench/bench_report.py (for the ceilings, kernel and sweep runs); validated by tests/cpu/test_schema.py. A change to this file is a schema_version bump.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "schema_version",
+  "record",
+  "session",
+  "experiment",
+  "created_unix_ns",
+  "tool",
+  "git",
+  "env",
+  "arm",
+  "shape",
+  "timer",
+  "design",
+  "samples",
+  "summary",
+  "rejections",
+  "verdict",
+  "ceilings_referenced",
+  "nvml_trace"
+ ],
+ "properties": {
+  "schema_version": {
+   "const": 1
+  },
+  "record": {
+   "const": "arm_result"
+  },
+  "session": {
+   "type": "string",
+   "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}-(ceilings|kernel|sweep)-[0-9]+w-gpu[0-9]+(-[A-Za-z0-9_.-]+)?$",
+   "description": "name of the result directory: <date>-<kind>-<W>w-gpu<N>[-<tag>] with kind ceilings, kernel or sweep and W the GPU power limit in watts, e.g. 2026-10-20-ceilings-220w-gpu0"
+  },
+  "experiment": {
+   "type": "string",
+   "minLength": 1
+  },
+  "created_unix_ns": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "tool": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "raw_files",
+    "argv"
+   ],
+   "properties": {
+    "name": {
+     "enum": [
+      "sol_copy",
+      "mma_ceiling",
+      "kernel_bench"
+     ]
+    },
+    "raw_files": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/file_ref"
+     }
+    },
+    "argv": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   }
+  },
+  "git": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "sha",
+    "dirty"
+   ],
+   "properties": {
+    "sha": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{40}$"
+    },
+    "dirty": {
+     "type": "boolean",
+     "description": "uncommitted changes when the run started"
+    }
+   }
+  },
+  "env": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "gpu_name",
+    "pci_bus_id",
+    "cc",
+    "sm_count",
+    "l2_bytes",
+    "driver_version",
+    "cuda_runtime",
+    "image_digest",
+    "power_limit_w",
+    "nvcc_version",
+    "captures"
+   ],
+   "properties": {
+    "gpu_name": {
+     "type": "string"
+    },
+    "pci_bus_id": {
+     "type": "string"
+    },
+    "cc": {
+     "type": "string",
+     "pattern": "^[0-9]+\\.[0-9]+$"
+    },
+    "sm_count": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "l2_bytes": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "driver_version": {
+     "type": "string"
+    },
+    "cuda_runtime": {
+     "type": "integer"
+    },
+    "image_digest": {
+     "type": "string",
+     "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "power_limit_w": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "nvcc_version": {
+     "type": "string"
+    },
+    "captures": {
+     "type": "array",
+     "description": "environment capture files: nvidia-smi -q, vllm collect-env, ...",
+     "items": {
+      "$ref": "#/$defs/named_file_ref"
+     }
+    }
+   }
+  },
+  "arm": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "role"
+   ],
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "role": {
+     "enum": [
+      "ceiling",
+      "subject",
+      "comparison",
+      "aa_control"
+     ],
+     "description": "comparison = Triton/FA2/other baselines: a row for context, never a target (a baseline is never a ceiling)"
+    },
+    "label": {
+     "type": "string"
+    },
+    "params": {
+     "type": "object"
+    }
+   },
+   "if": {
+    "properties": {
+     "role": {
+      "const": "comparison"
+     }
+    }
+   },
+   "then": {
+    "required": [
+     "label"
+    ],
+    "properties": {
+     "label": {
+      "const": "comparison, not a target"
+     }
+    }
+   }
+  },
+  "shape": {
+   "type": "object",
+   "additionalProperties": {
+    "type": [
+     "integer",
+     "number",
+     "string",
+     "boolean"
+    ]
+   }
+  },
+  "timer": {
+   "enum": [
+    "cupti",
+    "cuda_event",
+    "host"
+   ],
+   "description": "host = wall clock around host-library calls (kernel_bench --device cpu): CPU pipeline tests only, never gated (kernel_gate.py refuses it)"
+  },
+  "design": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "schedule",
+    "blocks_per_arm_per_process",
+    "replays_per_block",
+    "processes",
+    "warmup_s",
+    "min_accepted_blocks"
+   ],
+   "properties": {
+    "schedule": {
+     "const": "mirrored"
+    },
+    "blocks_per_arm_per_process": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "replays_per_block": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "processes": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "warmup_s": {
+     "type": "number",
+     "minimum": 0
+    },
+    "min_accepted_blocks": {
+     "type": "integer",
+     "minimum": 1
+    }
+   }
+  },
+  "samples": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "unit",
+    "duration_kind",
+    "blocks"
+   ],
+   "properties": {
+    "unit": {
+     "const": "ns"
+    },
+    "duration_kind": {
+     "enum": [
+      "kernel",
+      "kernel_span",
+      "graph_replay",
+      "graph_replay_mean",
+      "host_wallclock"
+     ],
+     "description": "kernel = CUPTI per-launch kernel time; kernel_span = CUPTI time from the first kernel's start to the last kernel's end of one launch of several kernels (attention + combine, or two slices); graph_replay = event time of one graph replay; graph_replay_mean = event time of a graph divided by its launches; host_wallclock = CPU test runs"
+    },
+    "blocks": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "$ref": "#/$defs/block"
+     }
+    }
+   }
+  },
+  "summary": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "n_blocks",
+    "n_accepted",
+    "median_ns",
+    "q1_ns",
+    "q3_ns",
+    "iqr_ns",
+    "iqr_over_median",
+    "median_ci_ns"
+   ],
+   "properties": {
+    "n_blocks": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "n_accepted": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "median_ns": {
+     "type": "number"
+    },
+    "q1_ns": {
+     "type": "number"
+    },
+    "q3_ns": {
+     "type": "number"
+    },
+    "iqr_ns": {
+     "type": "number",
+     "minimum": 0
+    },
+    "iqr_over_median": {
+     "type": "number",
+     "minimum": 0
+    },
+    "median_ci_ns": {
+     "$ref": "#/$defs/ci"
+    },
+    "throughput": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "unit",
+      "estimate",
+      "lo",
+      "hi",
+      "work_per_launch"
+     ],
+     "properties": {
+      "unit": {
+       "enum": [
+        "GB/s",
+        "TFLOPS",
+        "TOPS",
+        "us/node"
+       ]
+      },
+      "estimate": {
+       "type": "number"
+      },
+      "lo": {
+       "type": "number"
+      },
+      "hi": {
+       "type": "number"
+      },
+      "work_per_launch": {
+       "type": "number",
+       "description": "bytes, flop, ops or nodes"
+      }
+     }
+    },
+    "clock": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "sm_clock_mhz_median"
+     ],
+     "properties": {
+      "sm_clock_mhz_median": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "cycles_per_mma_per_smsp_median": {
+       "type": [
+        "number",
+        "null"
+       ]
+      }
+     }
+    }
+   }
+  },
+  "rejections": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "total",
+    "by_reason",
+    "reruns",
+    "status",
+    "reference_sm_clock_mhz"
+   ],
+   "properties": {
+    "total": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "by_reason": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "integer",
+      "minimum": 0
+     }
+    },
+    "foreign": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "blocks",
+      "large_blocks",
+      "worst_fraction",
+      "void"
+     ],
+     "properties": {
+      "blocks": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "large_blocks": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "worst_fraction": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1
+      },
+      "void": {
+       "type": "boolean"
+      }
+     }
+    },
+    "reruns": {
+     "type": "integer",
+     "minimum": 0,
+     "maximum": 3
+    },
+    "status": {
+     "enum": [
+      "ok",
+      "noisy"
+     ]
+    },
+    "reference_sm_clock_mhz": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "clock_domain": {
+     "enum": [
+      "both",
+      "sm",
+      "mem"
+     ],
+     "description": "NVML clocks the drift rule watched (stats.CLOCK_DOMAINS); absent in records written before the clock-domain rule"
+    },
+    "reference_clocks_mhz": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "number"
+     },
+     "description": "per-arm reference of each watched clock field"
+    }
+   }
+  },
+  "verdict": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "overall",
+    "checks"
+   ],
+   "properties": {
+    "overall": {
+     "enum": [
+      "not_applicable",
+      "pass",
+      "fail",
+      "inconclusive",
+      "noisy"
+     ]
+    },
+    "checks": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/check"
+     }
+    }
+   }
+  },
+  "ceilings_referenced": {
+   "type": "array",
+   "items": {
+    "$ref": "#/$defs/ceiling_ref"
+   }
+  },
+  "nvml_trace": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "path",
+    "sha256",
+    "interval_ms",
+    "n_samples"
+   ],
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "sha256": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$"
+    },
+    "interval_ms": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "n_samples": {
+     "type": "integer",
+     "minimum": 0
+    }
+   }
+  }
+ },
+ "$defs": {
+  "file_ref": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "path",
+    "sha256"
+   ],
+   "properties": {
+    "path": {
+     "type": "string"
+    },
+    "sha256": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$"
+    }
+   }
+  },
+  "named_file_ref": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "name",
+    "path",
+    "sha256"
+   ],
+   "properties": {
+    "name": {
+     "type": "string"
+    },
+    "path": {
+     "type": "string"
+    },
+    "sha256": {
+     "type": "string",
+     "pattern": "^[0-9a-f]{64}$"
+    }
+   }
+  },
+  "ci": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "estimate",
+    "lo",
+    "hi",
+    "level",
+    "n",
+    "resamples",
+    "seed",
+    "method"
+   ],
+   "properties": {
+    "estimate": {
+     "type": "number"
+    },
+    "lo": {
+     "type": "number"
+    },
+    "hi": {
+     "type": "number"
+    },
+    "level": {
+     "type": "number",
+     "exclusiveMinimum": 0,
+     "exclusiveMaximum": 1
+    },
+    "n": {
+     "type": "integer",
+     "minimum": 2
+    },
+    "resamples": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "seed": {
+     "type": "integer"
+    },
+    "method": {
+     "type": "string"
+    }
+   }
+  },
+  "block": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "process",
+    "round",
+    "seq",
+    "t_start_mono_ns",
+    "t_end_mono_ns",
+    "durations_ns",
+    "median_ns",
+    "rejected",
+    "reasons",
+    "nvml"
+   ],
+   "properties": {
+    "process": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "round": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "seq": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "t_start_mono_ns": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "t_end_mono_ns": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "durations_ns": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "number",
+      "minimum": 0
+     }
+    },
+    "median_ns": {
+     "type": "number",
+     "minimum": 0
+    },
+    "rejected": {
+     "type": "boolean"
+    },
+    "reasons": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "nvml": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "n",
+      "sm_clock_mhz_median",
+      "temp_c_max",
+      "power_w_median",
+      "throttle_mask_union",
+      "max_compute_procs"
+     ],
+     "properties": {
+      "n": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "sm_clock_mhz_median": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "temp_c_max": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "power_w_median": {
+       "type": [
+        "number",
+        "null"
+       ]
+      },
+      "throttle_mask_union": {
+       "type": [
+        "integer",
+        "null"
+       ]
+      },
+      "max_compute_procs": {
+       "type": [
+        "integer",
+        "null"
+       ]
+      }
+     }
+    },
+    "aux": {
+     "type": "object"
+    }
+   }
+  },
+  "check": {
+   "type": "object",
+   "additionalProperties": true,
+   "required": [
+    "kind",
+    "result",
+    "estimate",
+    "lo",
+    "hi",
+    "against"
+   ],
+   "properties": {
+    "kind": {
+     "enum": [
+      "gate",
+      "claim"
+     ]
+    },
+    "result": {
+     "enum": [
+      "pass",
+      "fail",
+      "inconclusive",
+      "noisy",
+      "increase",
+      "decrease",
+      "no_claim"
+     ]
+    },
+    "estimate": {
+     "type": "number"
+    },
+    "lo": {
+     "type": "number"
+    },
+    "hi": {
+     "type": "number"
+    },
+    "threshold": {
+     "type": "number"
+    },
+    "margin": {
+     "type": "number"
+    },
+    "against": {
+     "type": "string"
+    },
+    "note": {
+     "type": "string"
+    }
+   },
+   "allOf": [
+    {
+     "if": {
+      "properties": {
+       "kind": {
+        "const": "gate"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "threshold"
+      ],
+      "properties": {
+       "result": {
+        "enum": [
+         "pass",
+         "fail",
+         "inconclusive",
+         "noisy"
+        ]
+       },
+       "against": {
+        "pattern": "^(sol_copy|mma_ceiling|graph_node_overhead):"
+       }
+      }
+     }
+    },
+    {
+     "if": {
+      "properties": {
+       "kind": {
+        "const": "claim"
+       }
+      }
+     },
+     "then": {
+      "required": [
+       "margin"
+      ],
+      "properties": {
+       "result": {
+        "enum": [
+         "increase",
+         "decrease",
+         "no_claim",
+         "noisy"
+        ]
+       }
+      }
+     }
+    }
+   ]
+  },
+  "ceiling_ref": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "name",
+    "unit",
+    "source"
+   ],
+   "properties": {
+    "kind": {
+     "enum": [
+      "sol_copy",
+      "mma_ceiling",
+      "graph_node_overhead"
+     ]
+    },
+    "name": {
+     "type": "string"
+    },
+    "unit": {
+     "type": "string"
+    },
+    "source": {
+     "type": "string"
+    }
+   }
+  },
+  "nvml_sample": {
+   "description": "One line of bench/nvml_log.py output with kind == sample",
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind",
+    "tick",
+    "t_mono_ns",
+    "t_unix_ns",
+    "gpu_index",
+    "pci_bus_id",
+    "sm_clock_mhz",
+    "mem_clock_mhz",
+    "power_w",
+    "temp_c",
+    "throttle_reasons",
+    "throttle_names",
+    "util_gpu_pct",
+    "compute_procs",
+    "errors"
+   ],
+   "properties": {
+    "kind": {
+     "const": "sample"
+    },
+    "tick": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "t_mono_ns": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "t_unix_ns": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "gpu_index": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "pci_bus_id": {
+     "type": "string"
+    },
+    "sm_clock_mhz": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "mem_clock_mhz": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "power_w": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "temp_c": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "throttle_reasons": {
+     "type": [
+      "integer",
+      "null"
+     ],
+     "minimum": 0
+    },
+    "throttle_names": {
+     "type": [
+      "array",
+      "null"
+     ],
+     "items": {
+      "type": "string"
+     }
+    },
+    "util_gpu_pct": {
+     "type": [
+      "number",
+      "null"
+     ]
+    },
+    "compute_procs": {
+     "type": [
+      "array",
+      "null"
+     ],
+     "items": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+       "pid",
+       "used_mib"
+      ],
+      "properties": {
+       "pid": {
+        "type": "integer"
+       },
+       "used_mib": {
+        "type": [
+         "number",
+         "null"
+        ]
+       }
+      }
+     }
+    },
+    "errors": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "string"
+     }
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,545 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pth-flash-attn/bench/kernel_gate.schema.json",
+  "title": "Kernel gate report (bench/kernel_gate.py)",
+  "description": "One per kernel-bench results directory. Every gate is against hardware ceilings measured in the same run on the same GPU (sol_copy, mma_ceiling); a gate row passes on the CI lower bound. gate_verdict is 'pass' only if every gate rule of scope 'decode' (decode and verify rows) passed with every row present.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record",
+    "session",
+    "gpu",
+    "git_sha",
+    "gate_verdict",
+    "ceilings",
+    "rules",
+    "experiments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "record": {
+      "const": "kernel_gates"
+    },
+    "session": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gpu": {
+      "type": "string"
+    },
+    "git_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "kernel": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "attn (the kernel) or ref (the reference library as a stand-in), from env.json"
+    },
+    "kernel_source": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "commit the timed kernel library was built from (k_build.sh --attn-commit); '-' for the stand-in"
+    },
+    "balanced_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adjusted_q",
+        "t_ovh_us"
+      ],
+      "properties": {
+        "adjusted_q": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "t_ovh_us": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "gate_verdict": {
+      "enum": [
+        "pass",
+        "fail",
+        "not_passed"
+      ]
+    },
+    "ceilings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "copy",
+        "mma"
+      ],
+      "properties": {
+        "copy": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "median_gbps",
+              "n",
+              "file"
+            ],
+            "properties": {
+              "median_gbps": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 2
+              },
+              "file": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "mma": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "median_tflops",
+            "n",
+            "file"
+          ],
+          "properties": {
+            "median_tflops": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "file": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "scope",
+          "metric",
+          "threshold",
+          "text",
+          "overall",
+          "rows"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "gate",
+              "target",
+              "floor"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "decode",
+              "prefill"
+            ]
+          },
+          "metric": {
+            "enum": [
+              "eta_mem",
+              "eta_mma"
+            ]
+          },
+          "adjusted_q": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "q values of this rule's rows that are gated on eta_adj instead of metric"
+          },
+          "threshold": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 1.5
+          },
+          "text": {
+            "type": "string"
+          },
+          "overall": {
+            "enum": [
+              "pass",
+              "fail",
+              "inconclusive",
+              "missing",
+              "noisy",
+              "floor_level_reached",
+              "not_reached"
+            ]
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "experiment",
+                "result"
+              ],
+              "properties": {
+                "experiment": {
+                  "type": "string"
+                },
+                "result": {
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "inconclusive",
+                    "noisy",
+                    "missing"
+                  ]
+                },
+                "estimate": {
+                  "type": "number"
+                },
+                "lo": {
+                  "type": "number"
+                },
+                "hi": {
+                  "type": "number"
+                },
+                "threshold": {
+                  "type": "number"
+                },
+                "against": {
+                  "type": "string",
+                  "pattern": "^(sol_copy|mma_ceiling):"
+                },
+                "floor_level_reached": {
+                  "type": "boolean"
+                },
+                "metric": {
+                  "enum": [
+                    "eta_mem",
+                    "eta_mma",
+                    "eta_adj"
+                  ]
+                },
+                "note": {
+                  "type": "string"
+                },
+                "bound": {
+                  "enum": [
+                    "mem",
+                    "mma"
+                  ]
+                },
+                "sm_clock_mhz": {
+                  "type": "number"
+                },
+                "raw": {
+                  "type": "object",
+                  "description": "eta_adj rows only: the raw eta_mem beside the adjusted one and what the raw gate would say",
+                  "required": [
+                    "estimate",
+                    "lo",
+                    "hi",
+                    "result"
+                  ],
+                  "properties": {
+                    "estimate": {
+                      "type": "number"
+                    },
+                    "lo": {
+                      "type": "number"
+                    },
+                    "hi": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "enum": [
+                        "pass",
+                        "fail",
+                        "inconclusive",
+                        "noisy"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "experiments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "experiment",
+          "family",
+          "q",
+          "batch",
+          "seq_len",
+          "splits",
+          "n_accepted",
+          "n_blocks",
+          "status",
+          "median_us",
+          "eta_mem",
+          "eta_mma",
+          "eta_mma_useful",
+          "gbps",
+          "tflops_executed",
+          "tflops_useful",
+          "mde",
+          "ceilings",
+          "ref_median_us",
+          "file",
+          "sm_clock_mhz",
+          "power_w",
+          "mma_ceiling_clock_mhz",
+          "eta_mma_clock_adj"
+        ],
+        "properties": {
+          "experiment": {
+            "type": "string"
+          },
+          "family": {
+            "enum": [
+              "decode",
+              "prefill",
+              "mixed",
+              "selftest"
+            ]
+          },
+          "q": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "batch": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "seq_len": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "splits": {
+            "type": "string"
+          },
+          "n_accepted": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "n_blocks": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "noisy"
+            ]
+          },
+          "median_us": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "eta_mem": {
+            "$ref": "#/$defs/ci"
+          },
+          "eta_mma": {
+            "$ref": "#/$defs/ci"
+          },
+          "eta_mma_useful": {
+            "$ref": "#/$defs/ci"
+          },
+          "gbps": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "tflops_executed": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "tflops_useful": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "mde": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "ceilings": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "ref_median_us": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "sm_clock_mhz": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "power_w": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "mma_ceiling_clock_mhz": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "eta_mma_clock_adj": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "iqr_over_median": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "kernels": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "eta_adj": {
+            "$ref": "#/$defs/ci",
+            "description": "clock-adjusted roofline efficiency (max(T_mem, T_mma at the kernel's SM clock) + T_ovh) / T, decode rows"
+          },
+          "adj": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "terms behind eta_adj: times in microseconds, which one bounds, the SM clocks used",
+            "additionalProperties": false,
+            "required": [
+              "t_mem_us",
+              "t_mma_us",
+              "t_ovh_us",
+              "bound",
+              "kernel_clock_mhz",
+              "mma_ceiling_clock_mhz"
+            ],
+            "properties": {
+              "t_mem_us": {
+                "type": "number"
+              },
+              "t_mma_us": {
+                "type": "number"
+              },
+              "t_ovh_us": {
+                "type": "number"
+              },
+              "bound": {
+                "enum": [
+                  "mem",
+                  "mma"
+                ]
+              },
+              "kernel_clock_mhz": {
+                "type": "number"
+              },
+              "mma_ceiling_clock_mhz": {
+                "type": "number"
+              }
+            }
+          },
+          "eta_adj_note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "why eta_adj is absent (a clock or ceiling is missing); never filled in from another arm"
+          },
+          "eta_adj_16row": {
+            "$ref": "#/$defs/ci",
+            "description": "informational: the same roofline with the formula flops (16-row slices) as the tensor term; never gated"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ci": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "estimate",
+        "lo",
+        "hi",
+        "method"
+      ],
+      "properties": {
+        "estimate": {
+          "type": "number"
+        },
+        "lo": {
+          "type": "number"
+        },
+        "hi": {
+          "type": "number"
+        },
+        "method": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

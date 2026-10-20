@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata in this file."
+title: "pth-flash-attn: a FlashAttention-style CUDA kernel for vLLM's int8 per-token-head paged KV cache"
+type: software
+authors:
+  - alias: "noon-at-cgn"
+version: 0.1.0
+date-released: 2026-10-20
+license: Apache-2.0
+repository-code: "https://github.com/noon-at-cgn/pth-flash-attn"
+abstract: >-
+  A forward-only attention kernel for NVIDIA Ampere and Ada GPUs (sm80, sm86,
+  sm89) that reads vLLM's int8_per_token_head paged KV cache in place, with
+  int8 keys and values and inline fp32 scales consumed by tensor cores, plus a
+  PyTorch op, a launch planner and a vLLM attention-backend plugin.
+keywords:
+  - attention
+  - flash-attention
+  - cuda
+  - kv-cache
+  - int8
+  - quantization
+  - vllm
+  - pytorch
+  - llm-inference
+  - gpu-kernels

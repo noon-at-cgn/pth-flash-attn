@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+#
+# Mirrors vLLM v0.30.0's .pre-commit-config.yaml for the hooks that apply to
+# this repository (ruff-check, ruff-format, typos, clang-format --style=file,
+# shellcheck -s bash, mypy, SPDX header, sign-off), plus the project's own
+# engine-facing check.
+#
+# Deviation from vLLM, on purpose: every hook is `repo: local` with
+# `language: system`, calling the pinned tools already installed in
+# pth-flash-attn-lint (docker/dev.Dockerfile). vLLM's remote hook repos make
+# pre-commit download hook environments on first use, which cannot work in
+# the --network none containers this project runs in. The tool versions are
+# pinned by the image instead of by `rev:`.
+#
+# Run inside the lint image (or any environment with the same tools):
+#   pre-commit run --all-files
+# Install the commit-msg hook for the automatic sign-off:
+#   pre-commit install --hook-type pre-commit --hook-type commit-msg
+#
+# Not mirrored: markdownlint-cli2 and actionlint (Node/Go binaries not in the
+# image; GitHub CI could add them), and vLLM's repo-specific hooks
+# (pip-compile, buildkite, docker versions, Rust).
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+default_stages:
+  - pre-commit
+  - manual
+exclude: '^build/'
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format --force-exclude
+        language: system
+        types_or: [python, pyi]
+      - id: typos
+        name: typos
+        entry: typos --force-exclude
+        language: system
+        types: [text]
+      - id: clang-format
+        name: clang-format (Google style, .clang-format)
+        entry: clang-format --style=file -i
+        language: system
+        types_or: [c++, cuda]
+      - id: shellcheck
+        name: shellcheck
+        entry: shellcheck -s bash --format=gcc
+        language: system
+        types: [shell]
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+        require_serial: true
+      - id: check-spdx-header
+        name: SPDX headers
+        entry: python tools/repo_checks.py spdx
+        language: system
+        types: [text]
+      - id: check-engine-facing
+        name: no torch.cuda, no env vars in engine-facing code
+        entry: python tools/repo_checks.py engine-facing
+        language: system
+        files: '^python/pth_flash_attn/[^/]+\.py$'
+      - id: signoff-commit
+        name: Sign-off commit (DCO)
+        entry: bash
+        args:
+          - -c
+          - |
+            msg="$(git rev-parse --git-path COMMIT_EDITMSG)"
+            line="Signed-off-by: $(git config user.name) <$(git config user.email)>"
+            if ! grep -qF "${line}" "${msg}"; then
+              printf '\n%s\n' "${line}" >> "${msg}"
+            fi
+        language: system
+        verbose: true
+        stages: [commit-msg]

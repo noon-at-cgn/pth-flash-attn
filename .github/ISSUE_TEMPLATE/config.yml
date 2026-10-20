@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting guide
+    url: https://github.com/noon-at-cgn/pth-flash-attn/blob/main/docs/troubleshooting.md
+    about: Causes of every refusal and build message. Check it before opening a bug report.
+  - name: Frequently asked questions
+    url: https://github.com/noon-at-cgn/pth-flash-attn/blob/main/docs/faq.md
+    about: Why the project is standalone, why fp16 tensor-core arithmetic is used for bf16, why there is no PTX.
+  - name: Report a security vulnerability
+    url: https://github.com/noon-at-cgn/pth-flash-attn/security/policy
+    about: Report vulnerabilities privately, as described in SECURITY.md, not in a public issue. If the Security tab shows no reporting form, open an issue that gives no details and asks for a private channel.

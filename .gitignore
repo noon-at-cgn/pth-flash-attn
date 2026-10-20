@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+*.whl
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build and run output (the curated bench/results/ is tracked)
+/build/
+/results/
+*.so
+*.o
+*.a
+*.cubin
+*.fatbin
+*.ptx
+*.ncu-rep
+*.nsys-rep
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

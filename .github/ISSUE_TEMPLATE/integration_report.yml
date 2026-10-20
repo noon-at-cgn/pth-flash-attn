@@ -1,0 +1,79 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Copyright (c) 2026 noon-at-cgn
+name: Integration report
+description: Using the op from another engine or from a vLLM-derived fork, and what worked.
+title: "[Integration]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to report an attempt to call `pth_flash_attn_fwd` from an
+        engine other than unmodified vLLM, or to run the plugin on a vLLM fork or
+        another vLLM version. The contract an engine has to meet is in
+        [docs/integration.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/docs/integration.md).
+        Both outcomes are useful: what worked and what did not.
+
+        Maintenance is best-effort; see
+        [CONTRIBUTING.md](https://github.com/noon-at-cgn/pth-flash-attn/blob/main/CONTRIBUTING.md).
+        **Do not paste tokens, credentials, private prompts or model weights.**
+  - type: input
+    id: engine
+    attributes:
+      label: Engine or fork, and its version or commit
+      placeholder: "for example: vLLM 0.31.0 plus local patches; or another engine at commit abc1234"
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: pth-flash-attn, PyTorch, CUDA and driver versions
+      placeholder: "0.1.0; torch 2.13.0+cu130; nvcc 13.0.88; driver 580.x"
+    validations:
+      required: true
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU model and compute capability
+      placeholder: "RTX 3080 20 GB, 8.6"
+    validations:
+      required: true
+  - type: dropdown
+    id: path
+    attributes:
+      label: Integration path
+      options:
+        - vLLM plugin on a version other than 0.31.0
+        - vLLM plugin on a fork of vLLM
+        - Direct call of the op from another engine
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Works, output matches the reference
+        - Works with changes (described below)
+        - Runs but the output differs
+        - Fails at selection, load or launch
+    validations:
+      required: true
+  - type: textarea
+    id: worked
+    attributes:
+      label: What worked
+      description: The model, cache dtype, batch shapes, features (CUDA graphs, speculative decoding, prefix caching) and how the output was checked.
+    validations:
+      required: true
+  - type: textarea
+    id: changes
+    attributes:
+      label: What had to change, and what did not work
+      description: Changes to the engine or to the plugin, refusal messages, error messages, and which point of the integration contract was unclear or wrong.
+  - type: textarea
+    id: command
+    attributes:
+      label: Command or code
+      description: The command line or the integration code needed to reproduce the result.
+      render: shell
